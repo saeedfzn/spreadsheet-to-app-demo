@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spreadsheet to App</title>
+<meta name="description" content="Concept demo: replacing a purchase-request spreadsheet with a SharePoint-backed app, automated approvals and a live dashboard. Built by Faizaan Saeed.">
+<style>
+:root{
+  color-scheme: light;
+  --bg:#f6f5f2; --surface:#fcfcfb; --surface-2:#f0efec; --line:#dedcd6;
+  --text:#0b0b0b; --text-2:#52514e; --muted:#77756f;
+  --accent:#2a78d6; --accent-ink:#1c5cab; --accent-soft:#cde2fb;
+  --good:#0ca30c; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b;
+  --good-ink:#006300; --critical-ink:#b02a2a; --warn-ink:#8a5a00;
+  --cell-bad:#fde8e4;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --bg:#121211; --surface:#1a1a19; --surface-2:#232321; --line:#383835;
+    --text:#f0efec; --text-2:#c3c2b7; --muted:#9a998f;
+    --accent:#3987e5; --accent-ink:#86b6ef; --accent-soft:#16365c;
+    --good-ink:#6fd66f; --critical-ink:#f08a8a; --warn-ink:#fab219;
+    --cell-bad:#3a201c;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#121211; --surface:#1a1a19; --surface-2:#232321; --line:#383835;
+  --text:#f0efec; --text-2:#c3c2b7; --muted:#9a998f;
+  --accent:#3987e5; --accent-ink:#86b6ef; --accent-soft:#16365c;
+  --good-ink:#6fd66f; --critical-ink:#f08a8a; --warn-ink:#fab219;
+  --cell-bad:#3a201c;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1080px;margin:0 auto;padding:0 16px}
+header.hero{padding:48px 0 28px}
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-ink);font-weight:600}
+h1{font-size:clamp(28px,5vw,42px);line-height:1.1;margin:8px 0 12px;letter-spacing:-.01em}
+h2{font-size:22px;margin:0 0 6px}
+h3{font-size:15px;margin:0 0 8px}
+p.lede{font-size:17px;color:var(--text-2);max-width:720px;margin:0}
+.note{margin-top:18px;padding:12px 14px;border-left:3px solid var(--accent);background:var(--surface);color:var(--text-2);font-size:14px;max-width:760px;border-radius:0 6px 6px 0}
+nav.toc{display:flex;gap:6px;flex-wrap:wrap;margin-top:20px}
+nav.toc a{font-size:13px;padding:5px 10px;border:1px solid var(--line);border-radius:999px;color:var(--text-2);text-decoration:none;background:var(--surface)}
+nav.toc a:hover{border-color:var(--accent);color:var(--text)}
+section{padding:36px 0;border-top:1px solid var(--line)}
+.step{display:inline-block;font-size:12px;font-weight:600;color:var(--accent-ink);margin-bottom:4px}
+.sub{color:var(--text-2);margin:0 0 18px;max-width:760px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:1fr 1fr}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g4{grid-template-columns:repeat(4,1fr)}
+@media (max-width:820px){.g2,.g3{grid-template-columns:1fr}.g4{grid-template-columns:1fr 1fr}}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{color:var(--text-2);font-weight:600;font-size:12px}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.sheet td{font-family:ui-monospace,Consolas,monospace;font-size:12px}
+.sheet td.bad{background:var(--cell-bad)}
+.issues{margin:12px 0 0;padding-left:18px;color:var(--text-2);font-size:14px}
+.issues li{margin:3px 0}
+label{display:block;font-size:12px;color:var(--text-2);margin:10px 0 4px;font-weight:600}
+input,select,textarea{width:100%;font:inherit;font-size:14px;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--text)}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:1px}
+button{font:inherit;font-size:14px;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--text);padding:8px 12px;cursor:pointer}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+button.sm{font-size:12px;padding:4px 8px}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.err{color:var(--critical-ink);font-size:13px;min-height:18px;margin-top:6px}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--surface-2);color:var(--text)}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.log{font-family:ui-monospace,Consolas,monospace;font-size:12px;max-height:240px;overflow:auto;background:var(--surface-2);border-radius:8px;padding:10px;margin:0;list-style:none}
+.log li{padding:4px 0;border-bottom:1px dashed var(--line);color:var(--text-2)}
+.log li b{color:var(--text)}
+.flows .card h3{display:flex;gap:8px;align-items:center}
+.flows .trig{font-size:12px;color:var(--muted)}
+.flows ol{margin:8px 0 0;padding-left:18px;font-size:14px;color:var(--text-2)}
+.kpi .v{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
+.kpi .l{font-size:12px;color:var(--text-2);margin-top:4px}
+.filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.filters select{width:auto;min-width:160px}
+.chart{position:relative}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.tip{position:absolute;pointer-events:none;background:var(--text);color:var(--bg);font-size:12px;padding:6px 8px;border-radius:6px;white-space:nowrap;opacity:0;transform:translate(-50%,-110%);transition:opacity .08s}
+.ax{font-size:11px;fill:var(--muted)}
+.lbl{font-size:11px;fill:var(--text-2)}
+.gridline{stroke:var(--line);stroke-width:1}
+.tabs{display:flex;gap:6px;margin-bottom:10px}
+.tabs button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+footer{padding:36px 0 60px;border-top:1px solid var(--line);color:var(--text-2);font-size:14px}
+footer a,section a{color:var(--accent-ink)}
+.ideas li{margin:6px 0}
+.tag{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.theme-toggle{position:fixed;top:12px;right:12px;font-size:12px;padding:5px 9px;z-index:5}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+</style>
+</head>
+<body>
+<button class="theme-toggle" id="themeBtn" type="button" aria-label="Toggle light or dark theme">◐ Theme</button>
+<div class="wrap">
+<header class="hero">
+  <div class="eyebrow">Concept demo · Power Platform pattern</div>
+  <h1>From spreadsheet to app, flows and dashboard</h1>
+  <p class="lede">A typical team problem, solved the way I solve it on Microsoft 365: a messy purchase-request spreadsheet becomes a simple app on SharePoint Lists, approvals and chasing are automated, and managers get a live dashboard. Try it below: submit a request, approve it, and watch the dashboard update.</p>
+  <div class="note"><b>What this is:</b> an interactive concept built in plain HTML/JS with made-up data, so anyone can click through it without a Microsoft licence. In a real tenancy the same design is built as a Power Apps canvas app on SharePoint Lists, Power Automate cloud flows and a Power BI report. The design notes for that build are in the <a href="#notes">build notes</a> and the <a href="https://github.com/saeedfzn/spreadsheet-to-app-demo">README</a>.</div>
+  <nav class="toc" aria-label="Sections">
+    <a href="#before">1 · The spreadsheet</a><a href="#app">2 · The app</a><a href="#flows">3 · Automations</a><a href="#dash">4 · Dashboard</a><a href="#ai">5 · Copilot &amp; AI</a><a href="#notes">6 · Build notes</a>
+  </nav>
+</header>
+
+<section id="before">
+  <span class="step">1 · Where time is being wasted</span>
+  <h2>The spreadsheet everyone emails around</h2>
+  <p class="sub">A shared workbook of purchase requests. Nobody knows which version is current, approvals happen by email, and the monthly spend report is rebuilt by hand.</p>
+  <div class="card scroll">
+    <table class="sheet" aria-label="Example of the old spreadsheet">
+      <thead><tr><th>Date</th><th>Who</th><th>Dept</th><th>Item</th><th class="num">Cost</th><th>Approved?</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td>03/09</td><td>Sam</td><td>Ops</td><td>Safety boots x4</td><td class="num">£240</td><td>yes</td><td>approved by email</td></tr>
+        <tr><td>3 Sept</td><td>sam</td><td>Operations</td><td>Safety boots x4</td><td class="num">240</td><td class="bad"></td><td class="bad">duplicate?</td></tr>
+        <tr><td>10/09</td><td>Priya</td><td>Finance</td><td>Laptop dock</td><td class="num">£95</td><td class="bad">??</td><td>chased twice</td></tr>
+        <tr><td class="bad">TBC</td><td>Jo</td><td>Field</td><td>Van tyres</td><td class="num bad">approx 600</td><td>pending</td><td class="bad">who approves &gt;£500?</td></tr>
+        <tr><td>16/09</td><td>Alex</td><td>IT</td><td>Monitor</td><td class="num">£180</td><td>NO</td><td></td></tr>
+      </tbody>
+    </table>
+    <ul class="issues">
+      <li>Inconsistent dates, names and departments, so totals and filters don't work.</li>
+      <li>Duplicates and blanks, with nothing to stop them.</li>
+      <li>Approvals live in inboxes; nothing chases a request that's stuck.</li>
+      <li>Managers wait for someone to build a report before they can see spend.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="app">
+  <span class="step">2 · Replace the spreadsheet with a simple app</span>
+  <h2>Request and approve in one place</h2>
+  <p class="sub">One form with dropdowns instead of free text, validation so bad rows can't get in, and an approver view. Every request is a row in a SharePoint list, so there's one current version.</p>
+  <div class="grid g2">
+    <form class="card" id="reqForm" novalidate>
+      <h3>New purchase request</h3>
+      <label for="fItem">What do you need?</label>
+      <input id="fItem" maxlength="60" placeholder="e.g. Replacement drill batteries">
+      <div class="grid g2" style="gap:10px">
+        <div><label for="fDept">Department</label><select id="fDept"></select></div>
+        <div><label for="fCat">Category</label><select id="fCat"></select></div>
+      </div>
+      <div class="grid g2" style="gap:10px">
+        <div><label for="fCost">Cost (£, inc. VAT)</label><input id="fCost" inputmode="decimal" placeholder="0.00"></div>
+        <div><label for="fWho">Your name</label><input id="fWho" maxlength="30" placeholder="e.g. Sam"></div>
+      </div>
+      <div class="err" id="fErr" role="alert"></div>
+      <div class="row" style="margin-top:6px"><button class="primary" type="submit">Submit request</button><span class="trig" id="routeHint" style="font-size:12px;color:var(--muted)"></span></div>
+    </form>
+    <div class="card">
+      <div class="row" style="justify-content:space-between"><h3 style="margin:0">Approver view</h3>
+        <select id="fView" style="width:auto" aria-label="Filter requests"><option value="Pending">Waiting for approval</option><option value="all">All requests</option></select></div>
+      <div class="scroll" style="margin-top:10px;max-height:330px;overflow:auto">
+        <table aria-label="Requests list"><thead><tr><th>Item</th><th>Dept</th><th class="num">£</th><th>Status</th><th></th></tr></thead><tbody id="reqBody"></tbody></table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flows">
+  <span class="step">3 · Automate the chasing</span>
+  <h2>Power Automate flows</h2>
+  <p class="sub">Four cloud flows on the standard SharePoint and Outlook connectors take the admin away. Below, the log shows each flow "running" as you use the app (simulated in this demo).</p>
+  <div class="grid g2 flows">
+    <div class="grid" style="gap:14px">
+      <div class="card"><h3>① New request → approver</h3><div class="trig">When an item is created</div><ol><li>Look up the approver for the department; over £500 also goes to Finance.</li><li>Send an approval email with Approve / Reject.</li></ol></div>
+      <div class="card"><h3>② Decision → requester</h3><div class="trig">When Status changes</div><ol><li>Email the requester the outcome and any comment.</li><li>Approved items over £500 are copied to Finance's order list.</li></ol></div>
+      <div class="card"><h3>③ Daily reminder</h3><div class="trig">Scheduled, 08:00 weekdays</div><ol><li>Find requests pending more than 3 days.</li><li>Send each approver one digest instead of many emails.</li></ol></div>
+      <div class="card"><h3>④ Monday summary</h3><div class="trig">Scheduled, Mondays 07:00</div><ol><li>Last week's spend by department and anything overdue, emailed to managers.</li></ol></div>
+    </div>
+    <div class="card"><h3>Flow run log</h3><ul class="log" id="log" aria-live="polite"><li>Waiting for activity: submit or approve a request above.</li></ul></div>
+  </div>
+</section>
+
+<section id="dash">
+  <span class="step">4 · Give managers visibility</span>
+  <h2>Live spend &amp; approvals dashboard</h2>
+  <p class="sub">The view a Power BI report would give, built over the same list. It updates as soon as you add or approve something above. Hover or tap the charts for exact figures.</p>
+  <div class="filters">
+    <label class="sr" for="dDept">Department</label><select id="dDept" aria-label="Department filter"></select>
+    <label class="sr" for="dRange">Period</label><select id="dRange" aria-label="Period filter"><option value="all">Jul – Nov 2026</option><option value="90">Last 90 days</option><option value="30">Last 30 days</option></select>
+  </div>
+  <div class="grid g4" id="kpis"></div>
+  <div class="grid g2" style="margin-top:14px">
+    <div class="card"><h3>Approved spend by department</h3><div class="chart" id="cDept"></div></div>
+    <div class="card"><h3>Requests submitted per week</h3><div class="chart" id="cWeek"></div></div>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <div class="row" style="justify-content:space-between"><h3 style="margin:0">Waiting longest</h3><span style="font-size:12px;color:var(--muted)">Pending requests, oldest first</span></div>
+    <div class="scroll"><table><thead><tr><th>Item</th><th>Dept</th><th>Requested by</th><th class="num">£</th><th class="num">Days waiting</th></tr></thead><tbody id="oldBody"></tbody></table></div>
+  </div>
+</section>
+
+<section id="ai">
+  <span class="step">5 · Where Copilot and simple AI agents fit</span>
+  <h2>Trying AI where it saves time</h2>
+  <p class="sub">Once the data lives in one clean list, AI becomes useful instead of a gimmick. These are the next steps I'd pilot. They're described here, not faked in this page.</p>
+  <div class="grid g3">
+    <div class="card"><div class="tag">Copilot Studio agent</div><h3>"Where's my request?"</h3><p style="margin:0;color:var(--text-2);font-size:14px">A Teams agent grounded on the Requests list answers status questions, so people stop emailing the approver.</p></div>
+    <div class="card"><div class="tag">AI Builder / prompt</div><h3>Category suggestion</h3><p style="margin:0;color:var(--text-2);font-size:14px">Suggest the category from the item description; the requester confirms it. AI suggests, people decide.</p></div>
+    <div class="card"><div class="tag">Copilot in Power BI</div><h3>Plain-English summary</h3><p style="margin:0;color:var(--text-2);font-size:14px">A short written summary of the month's spend on the dashboard for managers who won't read charts.</p></div>
+  </div>
+</section>
+
+<section id="notes">
+  <span class="step">6 · Keeping clear notes</span>
+  <h2>Build notes for the real version</h2>
+  <div class="grid g2">
+    <div class="card">
+      <h3>SharePoint Lists data model</h3>
+      <div class="scroll"><table>
+        <thead><tr><th>List</th><th>Key columns</th></tr></thead>
+        <tbody>
+          <tr><td>Requests</td><td>Item, Department (lookup), Category (choice), Cost, Requester (person), Status (choice), Approver (person), Submitted, Decided</td></tr>
+          <tr><td>Departments</td><td>Name, Approver (person), Budget</td></tr>
+          <tr><td>Categories</td><td>Name, Needs Finance over (£)</td></tr>
+        </tbody></table></div>
+      <p style="font-size:13px;color:var(--text-2);margin:10px 0 0">Indexed on Status and Submitted so filters stay delegable as the list grows past the 2,000-row app limit.</p>
+    </div>
+    <div class="card">
+      <h3>How I'd deliver it</h3>
+      <ol style="margin:0;padding-left:18px;color:var(--text-2);font-size:14px">
+        <li><b>Sit with the team</b> and map how requests really flow today.</li>
+        <li><b>Prototype in days</b>, put it in front of users, change what they don't like.</li>
+        <li><b>Test the edge cases</b>: duplicates, no approver, over-limit spend, someone approving their own request.</li>
+        <li><b>Permissions</b>: requesters see their own items, approvers their department, admins everything.</li>
+        <li><b>Hand over</b> a short user guide and an admin guide so the team can run it without me.</li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p><b>Faizaan Saeed</b>, Power Platform &amp; AI automation developer, Swindon, UK. I've delivered this pattern for real: a stock-control system for a manufacturer, with a Power Apps app on SharePoint, six Power Automate flows, automatic Excel reports and a live dashboard, delivered in 15 days and signed off.</p>
+  <p><a href="https://www.linkedin.com/in/faizaan-saeed-ba96a426b">LinkedIn</a> · <a href="https://github.com/saeedfzn/spreadsheet-to-app-demo">Source on GitHub</a></p>
+  <p style="font-size:12px;color:var(--muted)">All names, departments and figures on this page are made up. Microsoft, Power Apps, Power Automate, Power BI, SharePoint and Copilot are trademarks of Microsoft; this is an independent demo.</p>
+</footer>
+</div>
+
+<script>
+(function(){
+// ---------- theme toggle ----------
+const root=document.documentElement;
+document.getElementById('themeBtn').addEventListener('click',()=>{
+  const dark = root.dataset.theme ? root.dataset.theme==='dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  root.dataset.theme = dark ? 'light' : 'dark';
+});
+
+// ---------- synthetic data (seeded, so it's the same every load) ----------
+let seed=20261117; const rnd=()=>((seed=(seed*1664525+1013904223)%4294967296)/4294967296);
+const DEPTS=[{n:'Operations',a:'Ops Manager'},{n:'Field Services',a:'Field Lead'},{n:'Finance',a:'Finance Manager'},{n:'IT',a:'IT Manager'},{n:'Sales',a:'Sales Director'},{n:'HR',a:'HR Manager'}];
+const CATS=['Equipment','Safety & PPE','IT hardware','Software','Vehicle','Office supplies'];
+const ITEMS={'Equipment':['Drill batteries','Pressure gauge','Ladder (3m)','Tool storage'],'Safety & PPE':['Safety boots x4','Hi-vis jackets','First aid kit','Gloves (box)'],'IT hardware':['Laptop dock','24" monitor','Headset','Laptop'],'Software':['Design licence','Survey app','PDF editor'],'Vehicle':['Van tyres','Van service','Roof rack'],'Office supplies':['Printer toner','Desk chair','Whiteboard']};
+const PEOPLE=['Sam','Priya','Jo','Alex','Chris','Morgan','Ravi','Ellie','Tom','Aisha'];
+const COSTR={'Equipment':[60,700],'Safety & PPE':[30,300],'IT hardware':[40,1200],'Software':[50,900],'Vehicle':[150,1500],'Office supplies':[15,250]};
+const TODAY=new Date('2026-11-17T09:00:00');
+const START=new Date('2026-07-01T09:00:00');
+const DAY=864e5;
+const pick=a=>a[Math.floor(rnd()*a.length)];
+let reqs=[], nextId=1;
+for(let i=0;i<140;i++){
+  const d=new Date(START.getTime()+Math.floor(rnd()*((TODAY-START)/DAY))*DAY);
+  const cat=pick(CATS), dept=DEPTS[Math.floor(rnd()*rnd()*DEPTS.length*1.6)%DEPTS.length];
+  const [lo,hi]=COSTR[cat]; const cost=Math.round((lo+rnd()*rnd()*(hi-lo))/5)*5;
+  const age=(TODAY-d)/DAY; let status='Approved', decided=null;
+  const r=rnd();
+  if(age<12 && r<0.55) status='Pending';
+  else if(r<0.12) status='Rejected';
+  if(status!=='Pending'){ decided=new Date(d.getTime()+Math.max(0.2,Math.min(age,0.5+rnd()*rnd()*9))*DAY); }
+  reqs.push({id:nextId++,item:pick(ITEMS[cat]),dept:dept.n,cat,cost,who:pick(PEOPLE),status,submitted:d,decided,demo:false});
+}
+reqs.sort((a,b)=>b.submitted-a.submitted);
+
+// ---------- helpers ----------
+const $=id=>document.getElementById(id);
+const gbp=n=>'£'+Math.round(n).toLocaleString('en-GB');
+const fmtD=d=>d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const STATUS={Pending:{c:'var(--warning)',i:'◷'},Approved:{c:'var(--good)',i:'✓'},Rejected:{c:'var(--critical)',i:'✕'}};
+const pill=s=>`<span class="pill"><span class="dot" style="background:${STATUS[s].c}" aria-hidden="true"></span>${STATUS[s].i} ${s}</span>`;
+const approverFor=(dept,cost)=>{const a=DEPTS.find(d=>d.n===dept).a;return cost>500?a+' + Finance Manager':a;};
+const now=()=>TODAY; // demo clock is fixed so the data always makes sense
+
+// ---------- form ----------
+DEPTS.forEach(d=>$('fDept').add(new Option(d.n,d.n)));
+CATS.forEach(c=>$('fCat').add(new Option(c,c)));
+const hint=()=>{const c=parseFloat($('fCost').value);$('routeHint').textContent='Will route to: '+approverFor($('fDept').value,isNaN(c)?0:c);};
+['fDept','fCost'].forEach(i=>$(i).addEventListener('input',hint)); hint();
+function log(html){const ul=$('log'); if(ul.dataset.started!=='1'){ul.innerHTML='';ul.dataset.started='1';}
+  const li=document.createElement('li'); const t=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  li.innerHTML=`<b>${t}</b> ${html}`; ul.prepend(li);}
+$('reqForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  const item=$('fItem').value.trim(), who=$('fWho').value.trim(), cost=parseFloat($('fCost').value.replace(/[£,]/g,''));
+  const dept=$('fDept').value, cat=$('fCat').value;
+  let err='';
+  if(item.length<3) err='Please describe the item (at least 3 characters).';
+  else if(isNaN(cost)||cost<=0) err='Cost must be a number above zero.';
+  else if(cost>10000) err='Over £10,000 needs a capital request, not this form.';
+  else if(!who) err='Please add your name.';
+  else if(reqs.some(r=>r.status==='Pending'&&r.item.toLowerCase()===item.toLowerCase()&&r.dept===dept)) err='A matching request is already waiting for approval. Duplicate blocked.';
+  $('fErr').textContent=err; if(err) return;
+  const r={id:nextId++,item,dept,cat,cost:Math.round(cost*100)/100,who,status:'Pending',submitted:now(),decided:null,demo:true};
+  reqs.unshift(r);
+  log(`Flow ① ran: new request <b>#${r.id}</b> “${esc(item)}” (${gbp(r.cost)}) → approval email to <b>${esc(approverFor(dept,r.cost))}</b>.`);
+  $('reqForm').reset(); hint(); $('fView').value='Pending'; renderAll();
+});
+function decide(id,ok){
+  const r=reqs.find(x=>x.id===id); if(!r||r.status!=='Pending') return;
+  r.status=ok?'Approved':'Rejected'; r.decided=now();
+  log(`Flow ② ran: <b>#${r.id}</b> ${ok?'approved':'rejected'} → email to <b>${esc(r.who)}</b>${ok&&r.cost>500?'; copied to Finance order list':''}.`);
+  renderAll();
+}
+$('reqBody').addEventListener('click',e=>{const b=e.target.closest('button[data-id]'); if(b) decide(+b.dataset.id,b.dataset.ok==='1');});
+$('fView').addEventListener('change',renderList);
+function renderList(){
+  const v=$('fView').value;
+  const rows=reqs.filter(r=>v==='all'||r.status===v).slice(0,60);
+  $('reqBody').innerHTML=rows.map(r=>`<tr><td>${esc(r.item)}${r.demo?' <span class="tag">you</span>':''}<div style="font-size:11px;color:var(--muted)">${esc(r.who)} · ${fmtD(r.submitted)}</div></td><td>${esc(r.dept)}</td><td class="num">${gbp(r.cost)}</td><td>${pill(r.status)}</td><td>${r.status==='Pending'?`<div class="row" style="flex-wrap:nowrap"><button class="sm" data-id="${r.id}" data-ok="1" aria-label="Approve ${esc(r.item)}">Approve</button><button class="sm" data-id="${r.id}" data-ok="0" aria-label="Reject ${esc(r.item)}">Reject</button></div>`:''}</td></tr>`).join('')||'<tr><td colspan="5" style="color:var(--muted)">Nothing waiting. Submit a request on the left.</td></tr>';
+}
+
+// ---------- dashboard ----------
+const dSel=$('dDept'); dSel.add(new Option('All departments','all')); DEPTS.forEach(d=>dSel.add(new Option(d.n,d.n)));
+[dSel,$('dRange')].forEach(s=>s.addEventListener('change',renderDash));
+function filtered(){
+  const dept=dSel.value, rng=$('dRange').value;
+  const from=rng==='all'?START:new Date(TODAY.getTime()-(+rng)*DAY);
+  return reqs.filter(r=>(dept==='all'||r.dept===dept)&&r.submitted>=from);
+}
+function renderDash(){
+  const f=filtered();
+  const appr=f.filter(r=>r.status==='Approved');
+  const pend=f.filter(r=>r.status==='Pending');
+  const overdue=pend.filter(r=>(TODAY-r.submitted)/DAY>3);
+  const decided=f.filter(r=>r.decided);
+  const avg=decided.length?decided.reduce((s,r)=>s+(r.decided-r.submitted)/DAY,0)/decided.length:0;
+  const k=[
+    {v:gbp(appr.reduce((s,r)=>s+r.cost,0)),l:'Approved spend'},
+    {v:pend.length,l:'Waiting for approval'},
+    {v:avg.toFixed(1)+' days',l:'Average time to decide'},
+    {v:`<span style="color:${overdue.length?'var(--critical-ink)':'var(--good-ink)'}">${overdue.length?'⚠ ':'✓ '}${overdue.length}</span>`,l:'Overdue (pending over 3 days)'}
+  ];
+  $('kpis').innerHTML=k.map(x=>`<div class="card kpi"><div class="v">${x.v}</div><div class="l">${x.l}</div></div>`).join('');
+  // spend by dept (horizontal bars, single series)
+  const byDept=DEPTS.map(d=>({k:d.n,v:appr.filter(r=>r.dept===d.n).reduce((s,r)=>s+r.cost,0),n:appr.filter(r=>r.dept===d.n).length})).filter(x=>dSel.value==='all'||x.k===dSel.value).sort((a,b)=>b.v-a.v);
+  hbar($('cDept'),byDept);
+  // per week (columns)
+  const weeks=[]; const from=f.length?Math.min(...f.map(r=>r.submitted)):TODAY.getTime();
+  let w=new Date(from); w=new Date(w.getTime()-((w.getDay()+6)%7)*DAY); w.setHours(0,0,0,0);
+  while(w<=TODAY){const e=new Date(w.getTime()+7*DAY); weeks.push({k:w,v:f.filter(r=>r.submitted>=w&&r.submitted<e).length}); w=e;}
+  cols($('cWeek'),weeks);
+  // oldest pending
+  $('oldBody').innerHTML=pend.slice().sort((a,b)=>a.submitted-b.submitted).slice(0,6).map(r=>{const days=Math.floor((TODAY-r.submitted)/DAY);return `<tr><td>${esc(r.item)}</td><td>${esc(r.dept)}</td><td>${esc(r.who)}</td><td class="num">${gbp(r.cost)}</td><td class="num">${days>3?'<span style="color:var(--critical-ink)">⚠ '+days+'</span>':days}</td></tr>`}).join('')||'<tr><td colspan="5" style="color:var(--muted)">Nothing pending.</td></tr>';
+}
+const NS='http://www.w3.org/2000/svg';
+function tipFor(box){let t=box.querySelector('.tip'); if(!t){t=document.createElement('div');t.className='tip';t.setAttribute('role','status');box.appendChild(t);} return t;}
+function showTip(box,ev,html){const t=tipFor(box),r=box.getBoundingClientRect();const x=(ev.touches?ev.touches[0]:ev).clientX-r.left,y=(ev.touches?ev.touches[0]:ev).clientY-r.top;t.innerHTML=html;t.style.left=Math.max(60,Math.min(r.width-60,x))+'px';t.style.top=y+'px';t.style.opacity=1;}
+function hideTip(box){const t=box.querySelector('.tip'); if(t) t.style.opacity=0;}
+function nice(m){if(m<=0)return 1;const p=Math.pow(10,Math.floor(Math.log10(m)));const s=[1,1.5,2,2.5,3,4,5,6,8,10].find(s=>s*p>=m);return s*p;}
+function hbar(box,data){
+  const W=520,rowH=34,top=8,left=112,right=70,H=top+data.length*rowH+20;
+  const max=nice(Math.max(1,...data.map(d=>d.v)));
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Approved spend by department"><title>Approved spend by department</title>`;
+  for(let i=0;i<=4;i++){const x=left+(W-left-right)*i/4; s+=`<line class="gridline" x1="${x}" x2="${x}" y1="${top}" y2="${H-20}"/><text class="ax" x="${x}" y="${H-6}" text-anchor="middle">${gbp(max*i/4)}</text>`;}
+  data.forEach((d,i)=>{const y=top+i*rowH+7,w=Math.max(d.v?3:0,(W-left-right)*d.v/max),h=20;
+    s+=`<text class="lbl" x="${left-8}" y="${y+14}" text-anchor="end">${esc(d.k)}</text>`;
+    s+=`<path d="M${left},${y} h${Math.max(0,w-4)} q4,0 4,4 v${h-8} q0,4 -4,4 h-${Math.max(0,w-4)} z" fill="var(--accent)"/>`;
+    s+=`<text class="lbl" x="${left+w+6}" y="${y+14}">${gbp(d.v)}</text>`;
+    s+=`<rect x="0" y="${y-6}" width="${W}" height="${rowH}" fill="transparent" data-i="${i}" style="cursor:default"/>`;});
+  box.innerHTML=s+'</svg>';
+  box.querySelectorAll('rect[data-i]').forEach(r=>{const d=data[+r.dataset.i];
+    const h=ev=>showTip(box,ev,`<b>${esc(d.k)}</b><br>${gbp(d.v)} approved · ${d.n} request${d.n===1?'':'s'}`);
+    r.addEventListener('mousemove',h);r.addEventListener('touchstart',h,{passive:true});r.addEventListener('mouseleave',()=>hideTip(box));});
+}
+function cols(box,data){
+  const W=520,H=230,top=10,left=34,right=6,bottom=26,ph=H-top-bottom,pw=W-left-right;
+  const max=nice(Math.max(1,...data.map(d=>d.v))); const bw=pw/data.length; const gap=Math.min(2,bw*0.2);
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Requests submitted per week"><title>Requests submitted per week</title>`;
+  for(let i=0;i<=4;i++){const y=top+ph-ph*i/4; s+=`<line class="gridline" x1="${left}" x2="${W-right}" y1="${y}" y2="${y}"/><text class="ax" x="${left-6}" y="${y+4}" text-anchor="end">${Math.round(max*i/4)}</text>`;}
+  let lastM=-1,lastX=-99;
+  data.forEach((d,i)=>{const x=left+i*bw+gap/2,w=Math.max(1,bw-gap),h=ph*d.v/max,y=top+ph-h, r=Math.min(4,w/2,h);
+    if(h>0) s+=`<path d="M${x},${top+ph} v-${Math.max(0,h-r)} q0,-${r} ${r},-${r} h${Math.max(0,w-2*r)} q${r},0 ${r},${r} v${Math.max(0,h-r)} z" fill="var(--accent)"/>`;
+    const m=d.k.getMonth(); if(m!==lastM&&x-lastX>28){lastM=m;lastX=x; s+=`<text class="ax" x="${x}" y="${H-8}">${d.k.toLocaleDateString('en-GB',{month:'short'})}</text>`;}
+    s+=`<rect x="${left+i*bw}" y="${top}" width="${bw}" height="${ph}" fill="transparent" data-i="${i}"/>`;});
+  box.innerHTML=s+'</svg>';
+  box.querySelectorAll('rect[data-i]').forEach(r=>{const d=data[+r.dataset.i];
+    const h=ev=>showTip(box,ev,`Week of ${fmtD(d.k)}<br><b>${d.v}</b> request${d.v===1?'':'s'}`);
+    r.addEventListener('mousemove',h);r.addEventListener('touchstart',h,{passive:true});r.addEventListener('mouseleave',()=>hideTip(box));});
+}
+function renderAll(){renderList();renderDash();}
+renderAll();
+})();
+</script>
+</body>
+</html>

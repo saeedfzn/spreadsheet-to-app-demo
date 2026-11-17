@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Spreadsheet to App</title>
+<meta property="og:title" content="Spreadsheet to app: a Power Platform demo by Faizaan Saeed">
+<meta property="og:description" content="Clickable demo: a purchase-request spreadsheet replaced by a SharePoint-backed app, automated approvals and a spend dashboard, plus Power BI design notes.">
+<meta property="og:type" content="website">
 <meta name="description" content="Concept demo: replacing a purchase-request spreadsheet with a SharePoint-backed app, automated approvals and a live dashboard. Built by Faizaan Saeed.">
 <style>
 :root{
@@ -59,6 +62,10 @@ section{padding:36px 0;border-top:1px solid var(--line)}
 table{border-collapse:collapse;width:100%;font-size:13px}
 th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
 th{color:var(--text-2);font-weight:600;font-size:12px}
+td.wrap{white-space:normal;min-width:220px}
+pre.dax{font-family:ui-monospace,Consolas,monospace;font-size:12px;background:var(--surface-2);border-radius:8px;padding:10px;margin:8px 0 0;overflow-x:auto;white-space:pre;line-height:1.5}
+.byline{margin:0 0 14px;font-size:14px;color:var(--text-2)}
+.cta{display:inline-block;margin-top:16px;padding:9px 14px;border-radius:6px;background:var(--accent);color:#fff;text-decoration:none;font-weight:600;font-size:14px}
 td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 .sheet td{font-family:ui-monospace,Consolas,monospace;font-size:12px}
 .sheet td.bad{background:var(--cell-bad)}
@@ -107,10 +114,12 @@ footer a,section a{color:var(--accent-ink)}
 <header class="hero">
   <div class="eyebrow">Concept demo · Power Platform pattern</div>
   <h1>From spreadsheet to app, flows and dashboard</h1>
+  <p class="byline"><b>Faizaan Saeed</b> · Power BI &amp; Power Platform developer · built for a Power BI &amp; Power Platform Developer application. I delivered a real system on the same stack (Power Apps, SharePoint Lists, Power Automate) for a manufacturer in 15 days, signed off.</p>
   <p class="lede">A typical team problem, solved the way I solve it on Microsoft 365: a messy purchase-request spreadsheet becomes a simple app on SharePoint Lists, approvals and chasing are automated, and managers get a live dashboard. Try it below: submit a request, approve it, and watch the dashboard update.</p>
-  <div class="note"><b>What this is:</b> an interactive concept built in plain HTML/JS with made-up data, so anyone can click through it without a Microsoft licence. In a real tenancy the same design is built as a Power Apps canvas app on SharePoint Lists, Power Automate cloud flows and a Power BI report. The design notes for that build are in the <a href="#notes">build notes</a> and the <a href="https://github.com/saeedfzn/spreadsheet-to-app-demo">README</a>.</div>
+  <div class="note"><b>What this is:</b> a clickable concept with made-up data (demo date 17 Nov 2026), so it runs without a Microsoft licence. The real build would be Power Apps, Power Automate and Power BI, as set out in the <a href="#pbi">Power BI design</a> and <a href="#notes">build notes</a>.</div>
+  <a class="cta" href="#dash">Jump to the dashboard ↓</a>
   <nav class="toc" aria-label="Sections">
-    <a href="#before">1 · The spreadsheet</a><a href="#app">2 · The app</a><a href="#flows">3 · Automations</a><a href="#dash">4 · Dashboard</a><a href="#ai">5 · Copilot &amp; AI</a><a href="#notes">6 · Build notes</a>
+    <a href="#before">1 · The spreadsheet</a><a href="#app">2 · The app</a><a href="#flows">3 · Automations</a><a href="#dash">4 · Dashboard</a><a href="#pbi">5 · Power BI design</a><a href="#ai">6 · Copilot &amp; AI</a><a href="#notes">7 · Build notes</a>
   </nav>
 </header>
 
@@ -136,12 +145,21 @@ footer a,section a{color:var(--accent-ink)}
       <li>Managers wait for someone to build a report before they can see spend.</li>
     </ul>
   </div>
+  <div class="card" style="margin-top:14px">
+    <h3>What I'd ask the team first</h3>
+    <ul class="issues" style="margin-top:0">
+      <li>Walk me through the last request you raised. Where did it get stuck?</li>
+      <li>Who approves what, and what happens when they're on leave?</li>
+      <li>What does Finance re-type from this sheet every month?</li>
+      <li>Which number does your manager ask you for most often?</li>
+    </ul>
+  </div>
 </section>
 
 <section id="app">
   <span class="step">2 · Replace the spreadsheet with a simple app</span>
   <h2>Request and approve in one place</h2>
-  <p class="sub">One form with dropdowns instead of free text, validation so bad rows can't get in, and an approver view. Every request is a row in a SharePoint list, so there's one current version.</p>
+  <p class="sub">One form with dropdowns instead of free text, validation so bad rows can't get in, and an approver view. Every request is a row in a SharePoint list, so there's one current version. In the real app nobody can approve their own request.</p>
   <div class="grid g2">
     <form class="card" id="reqForm" novalidate>
       <h3>New purchase request</h3>
@@ -171,13 +189,13 @@ footer a,section a{color:var(--accent-ink)}
 <section id="flows">
   <span class="step">3 · Automate the chasing</span>
   <h2>Power Automate flows</h2>
-  <p class="sub">Four cloud flows on the standard SharePoint and Outlook connectors take the admin away. Below, the log shows each flow "running" as you use the app (simulated in this demo).</p>
+  <p class="sub">Four cloud flows on standard connectors (SharePoint, Approvals, Outlook and Teams) take the admin away. Below, the log shows each flow "running" as you use the app (simulated in this demo).</p>
   <div class="grid g2 flows">
     <div class="grid" style="gap:14px">
-      <div class="card"><h3>① New request → approver</h3><div class="trig">When an item is created</div><ol><li>Look up the approver for the department; over £500 also goes to Finance.</li><li>Send an approval email with Approve / Reject.</li></ol></div>
-      <div class="card"><h3>② Decision → requester</h3><div class="trig">When Status changes</div><ol><li>Email the requester the outcome and any comment.</li><li>Approved items over £500 are copied to Finance's order list.</li></ol></div>
+      <div class="card"><h3>① New request → approver</h3><div class="trig">When an item is created</div><ol><li>Look up the approver for the department; over £500 also goes to Finance.</li><li>Start an approval the approver can action in Teams or Outlook.</li><li>Write the decision and date back to the list.</li></ol></div>
+      <div class="card"><h3>② Decision → requester</h3><div class="trig">When an item is modified (trigger condition: Status is Approved or Rejected)</div><ol><li>Email the requester the outcome and any comment.</li><li>Approved items over £500: Finance is notified to raise the order.</li></ol></div>
       <div class="card"><h3>③ Daily reminder</h3><div class="trig">Scheduled, 08:00 weekdays</div><ol><li>Find requests pending more than 3 days.</li><li>Send each approver one digest instead of many emails.</li></ol></div>
-      <div class="card"><h3>④ Monday summary</h3><div class="trig">Scheduled, Mondays 07:00</div><ol><li>Last week's spend by department and anything overdue, emailed to managers.</li></ol></div>
+      <div class="card"><h3>④ Monday summary</h3><div class="trig">Scheduled, Mondays 07:00</div><ol><li>Last week's spend by department and anything overdue, posted to the managers' Teams channel.</li></ol></div>
     </div>
     <div class="card"><h3>Flow run log</h3><ul class="log" id="log" aria-live="polite"><li>Waiting for activity: submit or approve a request above.</li></ul></div>
   </div>
@@ -186,10 +204,10 @@ footer a,section a{color:var(--accent-ink)}
 <section id="dash">
   <span class="step">4 · Give managers visibility</span>
   <h2>Live spend &amp; approvals dashboard</h2>
-  <p class="sub">The view a Power BI report would give, built over the same list. It updates as soon as you add or approve something above. Hover or tap the charts for exact figures.</p>
+  <p class="sub">The view the Power BI report gives, mocked up over the same data. In this demo it updates as soon as you add or approve something; in the real build the in-app tiles are live and the Power BI report refreshes on a schedule. Hover or tap the charts for exact figures.</p>
   <div class="filters">
     <label class="sr" for="dDept">Department</label><select id="dDept" aria-label="Department filter"></select>
-    <label class="sr" for="dRange">Period</label><select id="dRange" aria-label="Period filter"><option value="all">Jul – Nov 2026</option><option value="90">Last 90 days</option><option value="30">Last 30 days</option></select>
+    <label class="sr" for="dRange">Period</label><select id="dRange" aria-label="Period filter"><option value="all">All (Jul – 17 Nov 2026)</option><option value="90">Last 90 days</option><option value="30">Last 30 days</option></select>
   </div>
   <div class="grid g4" id="kpis"></div>
   <div class="grid g2" style="margin-top:14px">
@@ -202,8 +220,51 @@ footer a,section a{color:var(--accent-ink)}
   </div>
 </section>
 
+<section id="pbi">
+  <span class="step">5 · Power BI design</span>
+  <h2>How the real Power BI report is built</h2>
+  <p class="sub">Design notes for the report behind the dashboard above: model, measures and refresh. The measures below drive the four tiles.</p>
+  <div class="grid g2">
+    <div class="card">
+      <h3>Data model (star schema)</h3>
+      <div class="scroll"><table>
+        <thead><tr><th>Table</th><th>Role</th></tr></thead>
+        <tbody>
+          <tr><td>Requests</td><td class="wrap">Fact table from the SharePoint list: one row per request (Cost, Status, Submitted, Decided).</td></tr>
+          <tr><td>Department</td><td class="wrap">Dimension from the Departments list (approver, budget). One-to-many to Requests.</td></tr>
+          <tr><td>Category</td><td class="wrap">Dimension from the Categories list.</td></tr>
+          <tr><td>Date</td><td class="wrap">Calendar table marked as a date table, related to Requests[Submitted], for weekly and monthly trends.</td></tr>
+        </tbody></table></div>
+      <h3 style="margin-top:14px">Refresh &amp; sharing</h3>
+      <p style="margin:0;font-size:14px;color:var(--text-2)">SharePoint Online List connector in Import mode, with scheduled refresh through the day. Published to a workspace, shared with managers and pinned as a tab in their Teams channel.</p>
+    </div>
+    <div class="card">
+      <h3>DAX measures</h3>
+<pre class="dax">Approved Spend =
+CALCULATE ( SUM ( Requests[Cost] ),
+            Requests[Status] = "Approved" )
+
+Pending Requests =
+CALCULATE ( COUNTROWS ( Requests ),
+            Requests[Status] = "Pending" )
+
+Avg Days to Decide =
+AVERAGEX (
+    FILTER ( Requests, NOT ISBLANK ( Requests[Decided] ) ),
+    DATEDIFF ( Requests[Submitted], Requests[Decided], DAY )
+)
+
+Overdue Requests =
+CALCULATE ( COUNTROWS ( Requests ),
+            Requests[Status] = "Pending",
+            Requests[Submitted] &lt; TODAY () - 3 )</pre>
+      <p style="margin:8px 0 0;font-size:12px;color:var(--muted)">Design for the real report; this page computes the same figures in JavaScript.</p>
+    </div>
+  </div>
+</section>
+
 <section id="ai">
-  <span class="step">5 · Where Copilot and simple AI agents fit</span>
+  <span class="step">6 · Where Copilot and simple AI agents fit</span>
   <h2>Trying AI where it saves time</h2>
   <p class="sub">Once the data lives in one clean list, AI becomes useful instead of a gimmick. These are the next steps I'd pilot. They're described here, not faked in this page.</p>
   <div class="grid g3">
@@ -214,7 +275,7 @@ footer a,section a{color:var(--accent-ink)}
 </section>
 
 <section id="notes">
-  <span class="step">6 · Keeping clear notes</span>
+  <span class="step">7 · Keeping clear notes</span>
   <h2>Build notes for the real version</h2>
   <div class="grid g2">
     <div class="card">
@@ -222,11 +283,11 @@ footer a,section a{color:var(--accent-ink)}
       <div class="scroll"><table>
         <thead><tr><th>List</th><th>Key columns</th></tr></thead>
         <tbody>
-          <tr><td>Requests</td><td>Item, Department (lookup), Category (choice), Cost, Requester (person), Status (choice), Approver (person), Submitted, Decided</td></tr>
-          <tr><td>Departments</td><td>Name, Approver (person), Budget</td></tr>
-          <tr><td>Categories</td><td>Name, Needs Finance over (£)</td></tr>
+          <tr><td>Requests</td><td class="wrap">Item, Department (lookup), Category (lookup), Cost, Requester (person), Status (choice), Approver (person), Submitted, Decided</td></tr>
+          <tr><td>Departments</td><td class="wrap">Name, Approver (person), Budget</td></tr>
+          <tr><td>Categories</td><td class="wrap">Name. (The £500 Finance threshold is one admin setting, not hard-coded.)</td></tr>
         </tbody></table></div>
-      <p style="font-size:13px;color:var(--text-2);margin:10px 0 0">Indexed on Status and Submitted so filters stay delegable as the list grows past the 2,000-row app limit.</p>
+      <p style="font-size:13px;color:var(--text-2);margin:10px 0 0">Indexed on Status and Submitted, with delegable filters, so the app stays correct as the list grows past Power Apps' data row limit (500 by default, 2,000 max).</p>
     </div>
     <div class="card">
       <h3>How I'd deliver it</h3>
@@ -238,11 +299,29 @@ footer a,section a{color:var(--accent-ink)}
         <li><b>Hand over</b> a short user guide and an admin guide so the team can run it without me.</li>
       </ol>
     </div>
+    <div class="card">
+      <h3>Access, admin &amp; licences</h3>
+      <ul class="issues" style="margin-top:0">
+        <li>SharePoint groups: <b>Requesters</b> (add, and read their own items), <b>Approvers</b> and <b>Owners</b>. "Own items only" is set on the list itself, because filtering in the app alone isn't security.</li>
+        <li>Nobody can approve their own request: the flow checks requester ≠ approver.</li>
+        <li>Power Apps and Power Automate on standard connectors run on normal Microsoft 365 licences. Sharing the Power BI report needs Power BI Pro (or a capacity). Copilot Studio, AI Builder and Copilot in Power BI are paid extras, so they're costed before any pilot.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Change log (how I keep notes)</h3>
+      <ul class="issues" style="margin-top:0;font-size:13px">
+        <li><b>v1.0</b>: form, list and approver view; first demo to the team.</li>
+        <li><b>v1.1</b>: duplicate check added after two identical requests got through in testing.</li>
+        <li><b>v1.2</b>: Finance threshold moved from code into an admin setting after Finance asked to change it.</li>
+        <li><b>v1.3</b>: Monday summary moved from email to the managers' Teams channel.</li>
+      </ul>
+      <p style="margin:8px 0 0;font-size:12px;color:var(--muted)">Illustrative, to show the format I use.</p>
+    </div>
   </div>
 </section>
 
 <footer>
-  <p><b>Faizaan Saeed</b>, Power Platform &amp; AI automation developer, Swindon, UK. I've delivered this pattern for real: a stock-control system for a manufacturer, with a Power Apps app on SharePoint, six Power Automate flows, automatic Excel reports and a live dashboard, delivered in 15 days and signed off.</p>
+  <p><b>Faizaan Saeed</b>, Power Platform &amp; AI automation developer, Swindon, UK. I've delivered a real system on this stack: a stock-control system for a manufacturer, with a Power Apps app on SharePoint Lists, six Power Automate flows, automatic Excel reports and an in-app dashboard, delivered in 15 days and signed off.</p>
   <p><a href="https://www.linkedin.com/in/faizaan-saeed-ba96a426b">LinkedIn</a> · <a href="https://github.com/saeedfzn/spreadsheet-to-app-demo">Source on GitHub</a></p>
   <p style="font-size:12px;color:var(--muted)">All names, departments and figures on this page are made up. Microsoft, Power Apps, Power Automate, Power BI, SharePoint and Copilot are trademarks of Microsoft; this is an independent demo.</p>
 </footer>
@@ -270,16 +349,23 @@ const DAY=864e5;
 const pick=a=>a[Math.floor(rnd()*a.length)];
 let reqs=[], nextId=1;
 for(let i=0;i<140;i++){
-  const d=new Date(START.getTime()+Math.floor(rnd()*((TODAY-START)/DAY))*DAY);
+  const d=new Date(START); d.setDate(d.getDate()+Math.floor(rnd()*((TODAY-START)/DAY)));
+  if(d.getDay()===6) d.setDate(d.getDate()-1); if(d.getDay()===0) d.setDate(d.getDate()+1);
   const cat=pick(CATS), dept=DEPTS[Math.floor(rnd()*rnd()*DEPTS.length*1.6)%DEPTS.length];
   const [lo,hi]=COSTR[cat]; const cost=Math.round((lo+rnd()*rnd()*(hi-lo))/5)*5;
   const age=(TODAY-d)/DAY; let status='Approved', decided=null;
   const r=rnd();
-  if(age<12 && r<0.55) status='Pending';
+  if(age<=2 && r<0.8) status='Pending';
+  else if(age>3 && age<=8 && r<0.12) status='Pending';
   else if(r<0.12) status='Rejected';
   if(status!=='Pending'){ decided=new Date(d.getTime()+Math.max(0.2,Math.min(age,0.5+rnd()*rnd()*9))*DAY); }
   reqs.push({id:nextId++,item:pick(ITEMS[cat]),dept:dept.n,cat,cost,who:pick(PEOPLE),status,submitted:d,decided,demo:false});
 }
+// a few requests still waiting: most fresh, two overdue (so the chasing has something to chase)
+['2026-11-17','2026-11-17','2026-11-16','2026-11-16','2026-11-16','2026-11-12','2026-11-11'].forEach(ds=>{
+  const cat=pick(CATS), dept=pick(DEPTS).n, [lo,hi]=COSTR[cat];
+  reqs.push({id:nextId++,item:pick(ITEMS[cat]),dept,cat,cost:Math.round((lo+rnd()*(hi-lo)*0.6)/5)*5,who:pick(PEOPLE),status:'Pending',submitted:new Date(ds+'T09:00:00'),decided:null,demo:false});
+});
 reqs.sort((a,b)=>b.submitted-a.submitted);
 
 // ---------- helpers ----------
@@ -289,20 +375,20 @@ const fmtD=d=>d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const STATUS={Pending:{c:'var(--warning)',i:'◷'},Approved:{c:'var(--good)',i:'✓'},Rejected:{c:'var(--critical)',i:'✕'}};
 const pill=s=>`<span class="pill"><span class="dot" style="background:${STATUS[s].c}" aria-hidden="true"></span>${STATUS[s].i} ${s}</span>`;
-const approverFor=(dept,cost)=>{const a=DEPTS.find(d=>d.n===dept).a;return cost>500?a+' + Finance Manager':a;};
+const approverFor=(dept,cost)=>{const a=DEPTS.find(d=>d.n===dept).a;return cost>500&&a!=='Finance Manager'?a+' + Finance Manager':a;};
 const now=()=>TODAY; // demo clock is fixed so the data always makes sense
 
 // ---------- form ----------
 DEPTS.forEach(d=>$('fDept').add(new Option(d.n,d.n)));
 CATS.forEach(c=>$('fCat').add(new Option(c,c)));
-const hint=()=>{const c=parseFloat($('fCost').value);$('routeHint').textContent='Will route to: '+approverFor($('fDept').value,isNaN(c)?0:c);};
+const hint=()=>{const c=parseFloat($('fCost').value.replace(/[£,\s]/g,''));$('routeHint').textContent='Will route to: '+approverFor($('fDept').value,isNaN(c)?0:c);};
 ['fDept','fCost'].forEach(i=>$(i).addEventListener('input',hint)); hint();
 function log(html){const ul=$('log'); if(ul.dataset.started!=='1'){ul.innerHTML='';ul.dataset.started='1';}
-  const li=document.createElement('li'); const t=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const li=document.createElement('li'); const t='17 Nov '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
   li.innerHTML=`<b>${t}</b> ${html}`; ul.prepend(li);}
 $('reqForm').addEventListener('submit',e=>{
   e.preventDefault();
-  const item=$('fItem').value.trim(), who=$('fWho').value.trim(), cost=parseFloat($('fCost').value.replace(/[£,]/g,''));
+  const item=$('fItem').value.trim(), who=$('fWho').value.trim(), cost=parseFloat($('fCost').value.replace(/[£,\s]/g,''));
   const dept=$('fDept').value, cat=$('fCat').value;
   let err='';
   if(item.length<3) err='Please describe the item (at least 3 characters).';
@@ -326,8 +412,9 @@ $('reqBody').addEventListener('click',e=>{const b=e.target.closest('button[data-
 $('fView').addEventListener('change',renderList);
 function renderList(){
   const v=$('fView').value;
-  const rows=reqs.filter(r=>v==='all'||r.status===v).slice(0,60);
+  const all=reqs.filter(r=>v==='all'||r.status===v); const rows=all.slice(0,60);
   $('reqBody').innerHTML=rows.map(r=>`<tr><td>${esc(r.item)}${r.demo?' <span class="tag">you</span>':''}<div style="font-size:11px;color:var(--muted)">${esc(r.who)} · ${fmtD(r.submitted)}</div></td><td>${esc(r.dept)}</td><td class="num">${gbp(r.cost)}</td><td>${pill(r.status)}</td><td>${r.status==='Pending'?`<div class="row" style="flex-wrap:nowrap"><button class="sm" data-id="${r.id}" data-ok="1" aria-label="Approve ${esc(r.item)}">Approve</button><button class="sm" data-id="${r.id}" data-ok="0" aria-label="Reject ${esc(r.item)}">Reject</button></div>`:''}</td></tr>`).join('')||'<tr><td colspan="5" style="color:var(--muted)">Nothing waiting. Submit a request on the left.</td></tr>';
+  if(all.length>rows.length) $('reqBody').innerHTML+=`<tr><td colspan="5" style="color:var(--muted);font-size:12px">Showing the latest ${rows.length} of ${all.length}.</td></tr>`;
 }
 
 // ---------- dashboard ----------
@@ -357,8 +444,8 @@ function renderDash(){
   hbar($('cDept'),byDept);
   // per week (columns)
   const weeks=[]; const from=f.length?Math.min(...f.map(r=>r.submitted)):TODAY.getTime();
-  let w=new Date(from); w=new Date(w.getTime()-((w.getDay()+6)%7)*DAY); w.setHours(0,0,0,0);
-  while(w<=TODAY){const e=new Date(w.getTime()+7*DAY); weeks.push({k:w,v:f.filter(r=>r.submitted>=w&&r.submitted<e).length}); w=e;}
+  let w=new Date(from); w.setHours(0,0,0,0); w.setDate(w.getDate()-((w.getDay()+6)%7));
+  while(w<=TODAY){const e=new Date(w); e.setDate(e.getDate()+7); weeks.push({k:w,v:f.filter(r=>r.submitted>=w&&r.submitted<e).length}); w=e;}
   cols($('cWeek'),weeks);
   // oldest pending
   $('oldBody').innerHTML=pend.slice().sort((a,b)=>a.submitted-b.submitted).slice(0,6).map(r=>{const days=Math.floor((TODAY-r.submitted)/DAY);return `<tr><td>${esc(r.item)}</td><td>${esc(r.dept)}</td><td>${esc(r.who)}</td><td class="num">${gbp(r.cost)}</td><td class="num">${days>3?'<span style="color:var(--critical-ink)">⚠ '+days+'</span>':days}</td></tr>`}).join('')||'<tr><td colspan="5" style="color:var(--muted)">Nothing pending.</td></tr>';
@@ -370,7 +457,7 @@ function hideTip(box){const t=box.querySelector('.tip'); if(t) t.style.opacity=0
 function nice(m){if(m<=0)return 1;const p=Math.pow(10,Math.floor(Math.log10(m)));const s=[1,1.5,2,2.5,3,4,5,6,8,10].find(s=>s*p>=m);return s*p;}
 function hbar(box,data){
   const W=520,rowH=34,top=8,left=112,right=70,H=top+data.length*rowH+20;
-  const max=nice(Math.max(1,...data.map(d=>d.v)));
+  const max=nice(Math.max(1,...data.map(d=>d.v))/4)*4;
   let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Approved spend by department"><title>Approved spend by department</title>`;
   for(let i=0;i<=4;i++){const x=left+(W-left-right)*i/4; s+=`<line class="gridline" x1="${x}" x2="${x}" y1="${top}" y2="${H-20}"/><text class="ax" x="${x}" y="${H-6}" text-anchor="middle">${gbp(max*i/4)}</text>`;}
   data.forEach((d,i)=>{const y=top+i*rowH+7,w=Math.max(d.v?3:0,(W-left-right)*d.v/max),h=20;
@@ -385,9 +472,9 @@ function hbar(box,data){
 }
 function cols(box,data){
   const W=520,H=230,top=10,left=34,right=6,bottom=26,ph=H-top-bottom,pw=W-left-right;
-  const max=nice(Math.max(1,...data.map(d=>d.v))); const bw=pw/data.length; const gap=Math.min(2,bw*0.2);
+  const step=Math.max(1,Math.ceil(nice(Math.max(1,...data.map(d=>d.v)))/4)); const max=step*4; const bw=pw/data.length; const gap=Math.min(2,bw*0.2);
   let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Requests submitted per week"><title>Requests submitted per week</title>`;
-  for(let i=0;i<=4;i++){const y=top+ph-ph*i/4; s+=`<line class="gridline" x1="${left}" x2="${W-right}" y1="${y}" y2="${y}"/><text class="ax" x="${left-6}" y="${y+4}" text-anchor="end">${Math.round(max*i/4)}</text>`;}
+  for(let i=0;i<=4;i++){const y=top+ph-ph*i/4; s+=`<line class="gridline" x1="${left}" x2="${W-right}" y1="${y}" y2="${y}"/><text class="ax" x="${left-6}" y="${y+4}" text-anchor="end">${step*i}</text>`;}
   let lastM=-1,lastX=-99;
   data.forEach((d,i)=>{const x=left+i*bw+gap/2,w=Math.max(1,bw-gap),h=ph*d.v/max,y=top+ph-h, r=Math.min(4,w/2,h);
     if(h>0) s+=`<path d="M${x},${top+ph} v-${Math.max(0,h-r)} q0,-${r} ${r},-${r} h${Math.max(0,w-2*r)} q${r},0 ${r},${r} v${Math.max(0,h-r)} z" fill="var(--accent)"/>`;

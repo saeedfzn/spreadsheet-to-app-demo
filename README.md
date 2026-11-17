@@ -36,6 +36,6 @@ In a real Microsoft 365 tenancy the same design would be built like this:
 
 ## About me
 
-I'm Faizaan Saeed, a Power Platform and AI automation developer based in Swindon. I've delivered this pattern for real: a stock-control system for a manufacturer, with a Power Apps app on SharePoint, six Power Automate flows, automatic Excel reports and a live dashboard. It was delivered in 15 days and signed off. [LinkedIn](https://www.linkedin.com/in/faizaan-saeed-ba96a426b)
+I'm Faizaan Saeed, a Power Platform and AI automation developer based in Swindon. I've delivered a real system on this stack: a stock-control system for a manufacturer, with a Power Apps app on SharePoint Lists, six Power Automate flows, automatic Excel reports and an in-app dashboard. It was delivered in 15 days and signed off. [LinkedIn](https://www.linkedin.com/in/faizaan-saeed-ba96a426b)
 
 Microsoft, Power Apps, Power Automate, Power BI, SharePoint and Copilot are trademarks of Microsoft. This is an independent demo.
